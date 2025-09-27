@@ -1,0 +1,126 @@
+name: mediaserver
+
+services:
+    navidrome:
+      image: deluan/navidrome:latest
+      container_name: navidrome
+      ports:
+        - "4533:4533"
+      environment:
+        - ND_DATAFOLDER=/data
+        - ND_CONFIGFILE=/config/navidrome.toml
+      volumes:
+        - navidrome-data:/data
+        - "./navidrome.toml:/config/navidrome.toml:ro"
+        - "${VOLUME_MUSIC_LIBRARY_FOLDER}:/music:r"
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    jellyfin:
+      image: jellyfin/jellyfin:latest
+      container_name: jellyfin
+      ports:
+        - "8096:8096"
+      environment:
+        - JELLYFIN_PublishedServerUrl=
+      volumes:
+        - jellyfin-config:/config
+        - jellyfin-cache:/cache
+        - jellyfin-data:/data
+        - jellyfin-log:/log
+        - jellyfin-metadata:/metadata
+        - jellyfin-plugins:/plugins
+        - "${VOLUME_MOVIES_FOLDER}:/movies:ro"
+        - "${VOLUME_SHOWS_FOLDER}:/shows:ro"
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    slskd:
+      image: slskd/slskd
+      container_name: slskd
+      ports:
+        - "5030:5030"
+        - "5031:5031/tcp"
+        - "50300:50300/tcp"
+      environment:
+        - SLSKD_REMOTE_CONFIGURATION=true
+        - SLSKD_SLSK_USERNAME=${SLSKD_SOULSEEK_USERNAME}
+        - SLSKD_SLSK_PASSWORD=${SLSKD_SOULSEEK_PASSWORD}
+        - SLSKD_USERNAME=${SLSKD_WEB_USERNAME}
+        - SLSKD_PASSWORD=${SLSKD_WEB_PASSWORD}
+      volumes:
+        - slskd-data:/app
+        - slskd-incomplete:/app/incomplete
+        - "./slskd.yml:/app/slskd.yml:ro"
+        - "${VOLUME_MUSIC_DOWNLOAD_FOLDER}:/app/downloads:rw"
+        - "${VOLUME_MUSIC_LIBRARY_FOLDER}:/music:ro"
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    qbittorrent:
+      image: lscr.io/linuxserver/qbittorrent:latest
+      container_name: qbittorrent
+      environment:
+        - PUID=1000
+        - PGID=1000
+        - TZ=Etc/UTC
+        - WEBUI_PORT=8080
+        - QBITTORRENT_SHOWS_FOLDER=${QBITTORRENT_SHOWS_FOLDER}
+        - QBITTORRENT_MOVIES_FOLDER=${QBITTORRENT_MOVIES_FOLDER}
+      volumes:
+        - qbittorrent-config:/config
+        - "./scripts/:/scripts:ro"
+        - "${VOLUME_TORRENT_FOLDER}:${QBOTTORRENT_DOWNLOADS_FODLER}"
+        - "${VOLUME_MOVIES_FOLDER}:${QBITTORRENT_MOVIES_FOLDER}"
+        - "${VOLUME_SHOWS_FOLDER}:${QBITTORRENT_SHOWS_FOLDER}"
+      ports:
+        - "8080:8080"
+        - "6881:6881"
+        - "6881:6881/udp"
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    caddy:
+      build:
+        context: .
+        dockerfile: Dockerfile.caddy
+      container_name: caddy
+      restart: unless-stopped
+      ports:
+        - "80:80"
+        - "443:443"
+      environment:
+        - TS_AUTHKEY=${TS_AUTHKEY}
+      volumes:
+        - ./Caddyfile:/etc/caddy/Caddyfile:ro
+        - caddy_data:/data
+        - ./certs/full-chain.crt:/certs/full-chain.crt:ro
+        - ./certs/private.key:/certs/private.key:ro
+      networks:
+        - mediaserver-network
+      depends_on:
+        - navidrome
+        - jellyfin
+        - slskd
+        - qbittorrent
+
+volumes:
+    navidrome-data:
+    slskd-data:
+    slskd-incomplete:
+    caddy_data:
+    jellyfin-config:
+    jellyfin-cache:
+    jellyfin-data:
+    jellyfin-log:
+    jellyfin-metadata:
+    jellyfin-plugins:
+    qbittorrent-config:
+
+networks:
+    mediaserver-network:
+      driver: bridge

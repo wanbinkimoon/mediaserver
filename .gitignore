@@ -1,0 +1,7 @@
+cache
+certs
+data
+.env
+.DS_Store
+serverino-polpettino.tailb15f1c.ts.net.crt
+serverino-polpettino.tailb15f1c.ts.net.key
