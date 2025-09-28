@@ -84,6 +84,38 @@ services:
       networks:
         - mediaserver-network
 
+    sonarr:
+      image: lscr.io/linuxserver/sonarr:latest
+      container_name: sonarr
+      environment:
+        - PUID=1000
+        - PGID=1000
+        - TZ=Etc/UTC
+      volumes:
+        - sonarr-config:/config
+        - ${VOLUME_SHOWS_FOLDER}:/tv 
+        - ${VOLUME_TORRENT_FOLDER}:/downloads 
+      ports:
+        - 8989:8989
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    prowlarr:
+      image: lscr.io/linuxserver/prowlarr:latest
+      container_name: prowlarr
+      environment:
+        - PUID=1000
+        - PGID=1000
+        - TZ=Etc/UTC
+      volumes:
+        - prowlarr-config:/config
+      ports:
+        - 9696:9696
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
     caddy:
       build:
         context: .
@@ -120,6 +152,8 @@ volumes:
     jellyfin-metadata:
     jellyfin-plugins:
     qbittorrent-config:
+    sonarr-config:
+    prowlarr-config:
 
 networks:
     mediaserver-network:
