@@ -10,8 +10,8 @@ services:
         - ND_DATAFOLDER=/data
         - ND_CONFIGFILE=/config/navidrome.toml
       volumes:
-        - navidrome-data:/data
-        - "./navidrome.toml:/config/navidrome.toml:ro"
+        - ${NAVIDROME_DATA}:/data
+        - "${NAVIDROME_CONFIG}:/config/navidrome.toml:ro"
         - "${VOLUME_MUSIC_LIBRARY_FOLDER}:/music:r"
       restart: unless-stopped
       networks:
@@ -20,17 +20,15 @@ services:
     jellyfin:
       image: jellyfin/jellyfin:latest
       container_name: jellyfin
+      # user: uid:gid
       ports:
-        - "8096:8096"
+        - 8096:8096/tcp
+        - 7359:7359/udp
       environment:
-        - JELLYFIN_PublishedServerUrl=
+        - JELLYFIN_PublishedServerUrl=https://serverino-polpettino.tailb15f1c.ts.net/jellyfin
       volumes:
         - jellyfin-config:/config
         - jellyfin-cache:/cache
-        - jellyfin-data:/data
-        - jellyfin-log:/log
-        - jellyfin-metadata:/metadata
-        - jellyfin-plugins:/plugins
         - "${VOLUME_MOVIES_FOLDER}:/movies:ro"
         - "${VOLUME_SHOWS_FOLDER}:/shows:ro"
       restart: unless-stopped
@@ -51,9 +49,9 @@ services:
         - SLSKD_USERNAME=${SLSKD_WEB_USERNAME}
         - SLSKD_PASSWORD=${SLSKD_WEB_PASSWORD}
       volumes:
-        - slskd-data:/app
-        - slskd-incomplete:/app/incomplete
-        - "./slskd.yml:/app/slskd.yml:ro"
+        - ${SLSKD_DATA}:/app
+        - ${SLSKD_INCOMPLETE}:/app/incomplete
+        - "${SLSKD_CONFIG}:/app/slskd.yml:ro"
         - "${VOLUME_MUSIC_DOWNLOAD_FOLDER}:/app/downloads:rw"
         - "${VOLUME_MUSIC_LIBRARY_FOLDER}:/music:ro"
       restart: unless-stopped
@@ -71,8 +69,7 @@ services:
         - QBITTORRENT_SHOWS_FOLDER=${QBITTORRENT_SHOWS_FOLDER}
         - QBITTORRENT_MOVIES_FOLDER=${QBITTORRENT_MOVIES_FOLDER}
       volumes:
-        - qbittorrent-config:/config
-        - "./scripts/:/scripts:ro"
+        - ${QBITTORRENT_CONFIG}:/config        
         - "${VOLUME_TORRENT_FOLDER}:${QBOTTORRENT_DOWNLOADS_FODLER}"
         - "${VOLUME_MOVIES_FOLDER}:${QBITTORRENT_MOVIES_FOLDER}"
         - "${VOLUME_SHOWS_FOLDER}:${QBITTORRENT_SHOWS_FOLDER}"
@@ -92,7 +89,7 @@ services:
         - PGID=1000
         - TZ=Etc/UTC
       volumes:
-        - sonarr-config:/config
+        - ${SONARR_CONFIG}:/config
         - ${VOLUME_SHOWS_FOLDER}:/tv 
         - ${VOLUME_TORRENT_FOLDER}:/downloads 
       ports:
@@ -109,9 +106,26 @@ services:
         - PGID=1000
         - TZ=Etc/UTC
       volumes:
-        - prowlarr-config:/config
+        - ${PROWLARR_CONFIG}:/config
       ports:
         - 9696:9696
+      restart: unless-stopped
+      networks:
+        - mediaserver-network
+
+    radarr:
+      image: lscr.io/linuxserver/radarr:latest
+      container_name: radarr
+      environment:
+        - PUID=1000
+        - PGID=1000
+        - TZ=Etc/UTC
+      volumes:
+        - ${RADARR_CONFIG}:/config
+        - ${VOLUME_MOVIES_FOLDER}:/movies
+        - ${VOLUME_TORRENT_FOLDER}:/downloads 
+      ports:
+        - 7878:7878
       restart: unless-stopped
       networks:
         - mediaserver-network
@@ -141,19 +155,9 @@ services:
         - qbittorrent
 
 volumes:
-    navidrome-data:
-    slskd-data:
-    slskd-incomplete:
-    caddy_data:
     jellyfin-config:
     jellyfin-cache:
-    jellyfin-data:
-    jellyfin-log:
-    jellyfin-metadata:
-    jellyfin-plugins:
-    qbittorrent-config:
-    sonarr-config:
-    prowlarr-config:
+    caddy_data:
 
 networks:
     mediaserver-network:

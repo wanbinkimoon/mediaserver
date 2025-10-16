@@ -5,3 +5,10 @@ data
 .DS_Store
 serverino-polpettino.tailb15f1c.ts.net.crt
 serverino-polpettino.tailb15f1c.ts.net.key
+jellyfin
+navidrome
+prowlarr
+qbittorrent/config/qBittorrent
+radarr/config
+slskd
+sonarr
